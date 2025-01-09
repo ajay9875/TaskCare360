@@ -1,0 +1,42 @@
+#Change Execution Policy using below command on powerShell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+#To create a virtualenvironment
+python -m venv venv 
+
+#To activate Virtual environment
+.\env\Scripts\activate
+
+#To install flask in virtual environment
+pip install flask
+
+#To create Database in VE
+pip install flask-sqlalchemy 
+
+#After creating a schema in app.py successfully run app.py
+python app.py
+
+--------For Deploy our code in Heroku-----------
+pip install gunicorn
+pip freeze > requirements.txt
+
+#Create a Procfile in the same folder where app.py is.
+Write thin in Procfile:-> web:gunicorn app:app
+
+#Write heroku in command prompt to check
+heroku(if it is working then proceed further otherwise add path of heroku CLI in environment variable) 
+heroku login (Please login on redirected page using herku login id as email and password)
+
+#Install git repository through Chrome Browser
+Install git
+
+#command for git
+git init
+git add .
+git commit -m "initial commit"
+
+#Command for heroku
+heroku create my-todo-website or name as you want
+
+
+
