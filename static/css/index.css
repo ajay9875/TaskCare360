@@ -1,0 +1,94 @@
+#search{
+    border:groove black ;
+}
+.navbar{
+  background-color:rgb(214, 214, 216);
+}
+.navbar button{
+  background-color:blanchedalmond;
+  border:groove 2px black;
+  color:black;
+}
+.navbar button:hover{
+  background-color:cadetblue;
+}
+.username{
+  margin: 10px 5px 25px 25px;
+}
+.addtodo{
+  margin: 10px 5px 25px 25px;
+  padding: 10px;
+  width: fit-content;
+  height: fit-content;
+  border: solid 1px rgb(180, 180, 180);
+  border-radius: 5px;
+}
+.container{
+    margin: 0px 5px 10px 5px;
+    padding: 20px;
+    width: fit-content;
+    height: fit-content;
+    border: solid 1px rgb(180, 180, 180);
+    border-radius: 5px;
+}
+.logout-btn img{
+  height: 40px;
+  width: 40px;
+  border-radius: 100%;
+  border: solid 2px black;
+  margin-left: 50px;
+}
+#update-btn{
+  background: whitesmoke;
+}
+#update-btn:hover{
+  color: black;
+}
+#delete-btn{
+  background: red;
+}
+#delete-btn:hover{
+  color: black;
+}
+
+/* Dark Mode Style */
+/* Default Light Mode */
+body {
+  background-color: #ffffff;
+  color: #000000;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Dark Mode */
+body.dark-mode {
+  background-color: #121212;
+  color: #ffffff;
+}
+
+.navbar.dark-mode {
+  background-color: #1c1c1c;
+}
+
+.card.dark-mode {
+  background-color: #2a2a2a;
+  color: #ffffff;
+}
+
+/* Dark Mode Button */
+.dark-mode-toggle {
+  cursor: pointer;
+  padding: 10px 15px;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+}
+
+.Theme-btn{
+  margin: 5px 0px 0px 20px;
+}
+.Theme-btn button{
+  border-radius: 7px;
+
+}
+

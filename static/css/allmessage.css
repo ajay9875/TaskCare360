@@ -1,0 +1,55 @@
+/* All flashed message style */
+body {
+    font-family: Arial, sans-serif;
+}
+
+/* General message styling */
+.message {
+width: fit-content;
+border-radius: 5px;
+font-weight: bold;
+padding: 2px 20px 2px 20px;
+border-radius: 5px;
+margin-top: 5px;
+}
+
+/* Different colors for different message tags */
+.alert-success {
+background-color: #d4edda;
+color: rgba(2, 100, 2, 0.815);
+border: 1px solid #c3e6cb;
+}
+
+.alert-danger {
+background-color: #f8d7da;
+color: red;
+border: 1px solid #f5c6cb;
+}
+
+.alert-warning {
+background-color: #fff3cd;
+color: darkorange;
+border: 1px solid #ffeeba;
+}
+
+.alert-info {
+background-color: #d1ecf1;
+color: blue;
+border: 1px solid #bee5eb;
+}
+
+.msg {
+text-align: center;
+}
+
+/* Fading before hiding message */
+.message {
+    transition: opacity 1s ease-in-out;
+    opacity: 1;
+}
+
+.fade-out {
+    opacity: 0;
+    visibility: hidden; /* Ensures smooth disappearance */
+}
+

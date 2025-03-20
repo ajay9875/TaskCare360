@@ -1,114 +1,172 @@
 <!doctype html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>To Do</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-  <style>
-    #search{
-        border:groove black ;
-    }
-    .navbar{
-      background-color:lavender;
-    }
-    .navbar button{
-      background-color:blanchedalmond;
-      border:groove 2px black;
-      color:black;
-    }
-    .navbar button:hover{
-      background-color:cadetblue;
-    }
-    
-  </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" 
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/allmessage.css') }}">
+    <script src="{{ url_for('static', filename='javascript/allmessage.js') }}"></script>
+    <script src="{{ url_for('static', filename='javascript/theme.js') }}"></script>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='pic/favicon.png') }}">
   
-  </head>
+</head>
 
-  <body>
-
+<body>
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
-          <a class="navbar-brand" href="#">My ToDo</a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-              <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="#">Home</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link active active" href="#">About</a>
-              </li>
-            </ul>
-            <form class="d-flex" role="search">
-              <input class="form-control me-2" id="search" type="search" placeholder="Type here to search" aria-label="Search">
-              <button class="btn btn-outline-success" type="submit">Search</button>
-            </form>
-          </div>
+            <a class="navbar-brand" href="#">My ToDo</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" 
+                    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active active" href="#">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <!-- Session Timer -->
+                        {% if remaining_time %}
+                           <div id="session-timer" style="margin: 8px 20px; font-weight: bold"></div>
+                        {% endif %}
+                    </li>
+                    <nav class="Theme-btn">
+                        <button onclick="toggleDarkMode()">🌙 Dark Mode</button>
+                    </nav>
+                  </ul>
+
+                <form class="d-flex" role="search">
+                    <input class="form-control me-2" id="search" type="search" placeholder="Type here to search" aria-label="Search">
+                    <button class="btn btn-outline-success" type="submit">Search</button>
+                </form>
+
+                <!-- Logout Button -->
+                <a href="{{ url_for('logout') }}" class="logout-btn">
+                    <img src="{{url_for('static', filename='pic/logout.PNG')}}"> 
+                </a>
+            </div>
         </div>
-      </nav>
-      <br>
-   <div class="container">
-      <form action="/addTodo" method="POST">
-        <h3>Add a Todo</h3>
-        <div class="mb-3">
-          <label for="title">Todo Title</label><br>
-          <input type="text" name="title"  id="title" placeholder="" required>
-         </div>
-        <div class="mb-3">
-          <label for="desc" class="form-label">Todo Description</label><br>
-          <input type="text" name="desc" id="desc" placeholder="" required>
-        </div>
-        
-        <div class="checkbox">
-          <input type="checkbox" name="checkbox1" id="checkbox1" required>  
-          <label for="checkbox1"> Check me out </label>
-        </div>
+    </nav>
+
+    <div class="username">
+        {% if username %}
+            Hello, {{ username }}
+        {% else %}
+            Hello, Guest
+        {% endif %}
         <br>
-        
-        <button type="submit" class="btn btn-primary">Submit</button>
-      </form>
+    </div>
+    <div class="message">
+        {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
     </div>
 
-    <br><br>
-    <div class="container">
-      <h2>Your Todos</h2>
-    
-      {% if allTodo | length == 0 %}
-      <div class="alert alert-light" role="alert">
-        No record found. Please add a todo now!
-      </div>
-      {% else %}
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">SNo</th>
-            <th scope="col">Title</th>
-            <th scope="col">Description</th>
-            <th scope="col">Time</th>
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for todo in allTodo %}
-          <tr>
-            <th scope="row">{{ loop.index }}</th>
-            <td>{{ todo.title }}</td>
-            <td>{{ todo.desc }}</td>
-            <td>{{ todo.date_created }}</td>
-            <td>
-              <a href="/update/{{todo.SNo}}" type="button" class="btn btn-info btn-outline-dark btn-sm mx-1">Update</a>
-              <a href="/delete/{{todo.SNo}}" type="button" class="btn btn-info btn-outline-dark btn-sm mx-1">Delete</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
+    <div class="addtodo">
+        <form action="{{ url_for('addTodo')}}" method="POST">
+            <h3>Add a Todo</h3>
+            <div class="mb-3">
+                <label for="title">Todo Title</label><br>
+                <input type="text" name="title" id="title" placeholder="" required>
+            </div>
+            <div class="mb-3">
+                <label for="desc" class="form-label">Todo Description</label><br>
+                <input type="text" name="desc" id="desc" placeholder="" required>
+            </div>
+            
+            <div class="checkbox">
+                <input type="checkbox" name="checkbox1" id="checkbox1" required>  
+                <label for="checkbox1"> Check me out </label>
+            </div>
+            <br>
+            
+            <button type="submit" class="btn btn-primary">Add Todo</button>
+        </form>
     </div>
+
+    <div class="container">
+        <h5>Your Todos</h5>
+
+        {% if allTodo | length == 0 %}
+        <div class="alert alert-light" role="alert">
+            No record found. Please add a todo now!
+        </div>
+        {% else %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">SNo</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Description</th>
+                    <th scope="col">Time</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for todo in allTodo %}
+                <tr>
+                    <th scope="row">{{ loop.index }}</th>
+                    <td>{{ todo.title }}</td>
+                    <td>{{ todo.desc }}</td>
+                    <td>{{ todo.date_created }}</td>
+                    <td>
+                        <a href="/update/{{todo.SNo}}" id="update-btn" type="button" class="btn btn-info btn-outline-dark btn-sm mx-1">Update</a>
+                        <a href="/delete_todo/{{todo.SNo}}" id="delete-btn" type="button" class="btn btn-info btn-outline-dark btn-sm mx-1">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    <div id="session-timer" style="margin: 8px 20px; font-weight: bold;"></div>
+
+    <script>
+        let remainingTime = {{ remaining_time }}; // Get session time from Flask
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-  </body>
+        function updateTimer() {
+            let timerElement = document.getElementById("session-timer");
+    
+            if (remainingTime > 0) {
+                let minutes = Math.floor(remainingTime / 60);
+                let seconds = remainingTime % 60;
+                timerElement.innerText = `Session expires in ${minutes}m ${seconds}s`;
+    
+                // Change color dynamically when < 5 minutes
+                if (remainingTime < 300) { // 5 minutes = 300 seconds
+                    timerElement.style.color = "red";
+                } else {
+                    timerElement.style.color = "black";
+                }
+    
+                remainingTime--;
+                setTimeout(updateTimer, 1000);
+            } else {
+                timerElement.innerText = "Session expired! Logging out...";
+                setTimeout(() => {
+                    window.location.href = "{{ url_for('logout') }}";  // Auto logout
+                }, 2000);
+            }
+        }
+    
+        window.onload = updateTimer;
+    </script>
+    
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+</body>
 </html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgot Username - ToDo App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+    <div class="auth-container">
+        <h2>Forgot Username</h2>
+        <form method="POST">
+            <input type="email" name="email" placeholder="Enter your registered email" required>
+            <button type="submit">Retrieve Username</button>
+        </form>
+        <p><a href="{{ url_for('login') }}">Back to Login</a></p>
+    </div>
+</body>
+</html>
