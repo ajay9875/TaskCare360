@@ -112,8 +112,7 @@ def send_daily_task_reminders():
                 except Exception as e:
                     current_app.logger.error(f"Failed to send to {user.email}: {e}")
 
-        print("Reminders sent successfully.")
-        return jsonify({"message": "Reminders sent successfully."}), 200
+        print("✅ Reminders sent successfully.")
 
     except Exception as e:
         current_app.logger.error(f"Unexpected error: {e}")
@@ -124,8 +123,8 @@ from datetime import datetime, timedelta
 import threading
 
 def notification_scheduler():
-    target_hour = 19
-    target_minute = 50
+    target_hour = 20
+    target_minute = 15
 
     last_run_date = None  # Track the last date it ran
 
@@ -196,7 +195,7 @@ def dashboard():
         flash('Session expired! Please log in again.', 'warning')
         return redirect(url_for('TaskCare360'))
 
-    user_id = session['user_id']
+    user_id = session.get('user_id')
     username = session.get('username')
 
     # Calculate remaining session time
@@ -282,7 +281,7 @@ def login():
             session['username'] = user.name
             session.permanent = True  # Enable session expiration
             
-            expiry_time = datetime.now() + timedelta(minutes=1)  # Set session expiry time
+            expiry_time = datetime.now() + timedelta(minutes=0.5)  # Set session expiry time
             session['session_expiry'] = expiry_time.timestamp()  # Store expiry time as timestamp
             
             flash("Login successful!", "success")
@@ -595,8 +594,8 @@ def start_scheduler():
 
 # ✅ Always create the database on startup
 with app.app_context():
-    start_scheduler()  # 🔥 Always start scheduler
     db.create_all()
+    start_scheduler()  # 🔥 Always start scheduler
 
 # ✅ Run app only if in local dev
 if __name__ == '__main__':

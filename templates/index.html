@@ -135,35 +135,32 @@
     <div id="session-timer" style="margin: 8px 20px; font-weight: bold;"></div>
 
     <script>
-        let remainingTime = {{ remaining_time }}; // Get session time from Flask
-    
+        let remainingTime = {{ remaining_time }};  // Provided by Flask
+
         function updateTimer() {
-            let timerElement = document.getElementById("session-timer");
-    
-            if (remainingTime > 0) {
-                let minutes = Math.floor(remainingTime / 60);
-                let seconds = remainingTime % 60;
-                timerElement.innerText = `Session expires in ${minutes}m ${seconds}s`;
-    
-                // Change color dynamically when < 5 minutes
-                if (remainingTime < 300) { // 5 minutes = 300 seconds
-                    timerElement.style.color = "red";
-                } else {
-                    timerElement.style.color = "black";
-                }
-    
-                remainingTime--;
-                setTimeout(updateTimer, 1000);
-            } else {
+            const timerElement = document.getElementById("session-timer");
+
+            if (remainingTime <= 0) {
                 timerElement.innerText = "Session expired! Logging out...";
                 setTimeout(() => {
-                    window.location.href = "{{ url_for('logout') }}";  // Auto logout
-                    window.location.reload();  // ✅ Corrected: Add parentheses to call the function
-                }, 2000);
+                    window.location.href = "{{ url_for('logout') }}";  // Force logout
+                }, 1500);
+                return;  // 🔥 Prevent further countdown
             }
+
+            let minutes = Math.floor(remainingTime / 60);
+            let seconds = remainingTime % 60;
+            timerElement.innerText = `Session expires in ${minutes}m ${seconds}s`;
+
+            // Style change for urgency
+            timerElement.style.color = remainingTime < 300 ? "red" : "black";
+
+            remainingTime--;
+            setTimeout(updateTimer, 1000);  // Continue countdown
         }
-    
+
         window.onload = updateTimer;
+
     </script>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
