@@ -276,7 +276,7 @@ def login():
         email = request.form['email']
         password = request.form['password']
         user = User.query.filter_by(email=email).first()
-
+  
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['username'] = user.name
