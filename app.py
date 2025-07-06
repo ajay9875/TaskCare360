@@ -590,12 +590,16 @@ def deleteRecord(SNo):
     flash("Task deleted successfully!","success")
     return redirect(url_for('dashboard'))
 
-if __name__ == '__main__':
+@app.route('/init_db')
+def init_db():
     with app.app_context():
-        db.create_all()  # Create tables for the default DB
-    
-        # Start scheduler thread
-        scheduler_thread = threading.Thread(target=notification_scheduler, daemon=True)
-        scheduler_thread.start()
+        db.create_all()
+    return "✅ Database initialized"
 
+# Start scheduler always
+scheduler_thread = threading.Thread(target=notification_scheduler, daemon=True)
+scheduler_thread.start()
+
+# Only needed for local testing
+if __name__ == '__main__':
     app.run(debug=False)
