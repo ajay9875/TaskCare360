@@ -46,73 +46,73 @@ def send_daily_task_reminders():
     try:
         users = User.query.all()
         if not users:
-            return jsonify({"message": "No users found."}), 200
+            return False
+        else:
+            with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                server.starttls()
+                server.login(sender_email, sender_password)
 
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(sender_email, sender_password)
+                for user in users:
+                    tasks = Todo.query.filter_by(user_id=user.id).order_by(Todo.date_created.desc()).all()
 
-            for user in users:
-                tasks = Todo.query.filter_by(user_id=user.id).order_by(Todo.date_created.desc()).all()
+                    if not tasks:
+                        html_body = f"""
+                        <p>Hi {user.name},</p>
+                        <p>Great job staying on top of your tasks! 🎉<br>
+                        You currently have no pending tasks. Keep up the great work!</p>
+                        <p>👉 <a href="{login_url}">Login to add or manage your tasks</a></p>
+                        <br><p>— <strong>TaskCare360 Team</strong></p>
+                        """
+                    else:
+                        task_rows = ""
+                        for task in tasks:
+                            task_rows += f"""
+                                <tr>
+                                    <td style="border:1px solid #ddd;padding:8px;">{task.title}</td>
+                                    <td style="border:1px solid #ddd;padding:8px;">{task.desc or 'No description'}</td>
+                                    <td style="border:1px solid #ddd;padding:8px;">{task.date_created.strftime('%Y-%m-%d')}</td>
+                                </tr>
+                            """
 
-                if not tasks:
-                    html_body = f"""
-                    <p>Hi {user.name},</p>
-                    <p>Great job staying on top of your tasks! 🎉<br>
-                    You currently have no pending tasks. Keep up the great work!</p>
-                    <p>👉 <a href="{login_url}">Login to add or manage your tasks</a></p>
-                    <br><p>— <strong>TaskCare360 Team</strong></p>
-                    """
-                else:
-                    task_rows = ""
-                    for task in tasks:
-                        task_rows += f"""
-                            <tr>
-                                <td style="border:1px solid #ddd;padding:8px;">{task.title}</td>
-                                <td style="border:1px solid #ddd;padding:8px;">{task.desc or 'No description'}</td>
-                                <td style="border:1px solid #ddd;padding:8px;">{task.date_created.strftime('%Y-%m-%d')}</td>
-                            </tr>
+                        html_body = f"""
+                        <p>Hi {user.name},</p>
+                        <p>You're performing well. Continue with the same dedication to achieve your goals today.</p>
+                        <p>Here’s a summary of your pending tasks (most recent first):</p>
+
+                        <table style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif;">
+                            <thead>
+                                <tr style="background-color: #f2f2f2;">
+                                    <th style="border:1px solid #ddd;padding:8px;text-align:left;">Title</th>
+                                    <th style="border:1px solid #ddd;padding:8px;text-align:left;">Description</th>
+                                    <th style="border:1px solid #ddd;padding:8px;text-align:left;">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {task_rows}
+                            </tbody>
+                        </table>
+
+                        <p><strong>Total pending tasks:</strong> {len(tasks)}</p>
+                        <p>Take small steps consistently — your productivity matters! 🚀</p>
+                        <p>👉 <a href="{login_url}">Login to manage your tasks</a></p>
+                        <br><p>— <strong>TaskCare360 Team</strong></p>
                         """
 
-                    html_body = f"""
-                    <p>Hi {user.name},</p>
-                    <p>You're performing well. Continue with the same dedication to achieve your goals today.</p>
-                    <p>Here’s a summary of your pending tasks (most recent first):</p>
+                    subject = f"📋 Daily Task Reminder - {datetime.now().strftime('%b %d')}"
 
-                    <table style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif;">
-                        <thead>
-                            <tr style="background-color: #f2f2f2;">
-                                <th style="border:1px solid #ddd;padding:8px;text-align:left;">Title</th>
-                                <th style="border:1px solid #ddd;padding:8px;text-align:left;">Description</th>
-                                <th style="border:1px solid #ddd;padding:8px;text-align:left;">Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {task_rows}
-                        </tbody>
-                    </table>
+                    # Create MIME message with HTML content
+                    msg = MIMEMultipart("alternative")
+                    msg['From'] = sender_email
+                    msg['To'] = user.email
+                    msg['Subject'] = subject
+                    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
 
-                    <p><strong>Total pending tasks:</strong> {len(tasks)}</p>
-                    <p>Take small steps consistently — your productivity matters! 🚀</p>
-                    <p>👉 <a href="{login_url}">Login to manage your tasks</a></p>
-                    <br><p>— <strong>TaskCare360 Team</strong></p>
-                    """
+                    try:
+                        server.send_message(msg)
+                    except Exception as e:
+                        current_app.logger.error(f"Failed to send to {user.email}: {e}")
 
-                subject = f"📋 Daily Task Reminder - {datetime.now().strftime('%b %d')}"
-
-                # Create MIME message with HTML content
-                msg = MIMEMultipart("alternative")
-                msg['From'] = sender_email
-                msg['To'] = user.email
-                msg['Subject'] = subject
-                msg.attach(MIMEText(html_body, 'html', 'utf-8'))
-
-                try:
-                    server.send_message(msg)
-                except Exception as e:
-                    current_app.logger.error(f"Failed to send to {user.email}: {e}")
-
-        print("✅ Reminders sent successfully.")
+                return True
 
     except Exception as e:
         current_app.logger.error(f"Unexpected error: {e}")
@@ -124,8 +124,8 @@ import time
 import threading
 
 def notification_scheduler():
-    target_hour = 22
-    target_minute = 20
+    target_hour = 00
+    target_minute = 10
 
     ist = ZoneInfo("Asia/Kolkata")  # Timezone for India
     last_run_date = None  # Track last run date in IST
@@ -141,8 +141,12 @@ def notification_scheduler():
             next_target = today_target
 
         seconds_until_next = (next_target - now).total_seconds() - 30
+         
+        if seconds_until_next <= 0:
+            print(f"Executing message schedular immediately.")
+        else:
+            print(f"[Scheduler] Sleeping for {int(seconds_until_next)} seconds until {next_target}")
 
-        print(f"[Scheduler] Sleeping for {int(seconds_until_next)} seconds until {next_target}")
         if seconds_until_next > 1:
             time.sleep(seconds_until_next)
 
@@ -157,9 +161,14 @@ def notification_scheduler():
 
         try:
             with app.app_context():
-                send_daily_task_reminders()
-                print("✅ Notifications sent successfully.")
+                sent_msg = send_daily_task_reminders()
+                if sent_msg:
+                    print("✅ Reminders sent successfully.")
+                else:
+                    print("❌ No users found to send reminders.")
+
                 last_run_date = datetime.now(ist).date()
+                
         except Exception as e:
             print(f"❌ Failed to send notifications: {e}")
 
