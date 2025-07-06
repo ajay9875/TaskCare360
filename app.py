@@ -118,40 +118,48 @@ def send_daily_task_reminders():
         current_app.logger.error(f"Unexpected error: {e}")
         return jsonify({"error": "An error occurred while sending reminders."}), 500
 
-import time
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+import time
 import threading
 
 def notification_scheduler():
-    target_hour = 21
-    target_minute = 25
+    target_hour = 22
+    target_minute = 40
 
-    last_run_date = None  # Track the last date it ran
+    ist = ZoneInfo("Asia/Kolkata")  # Timezone for India
+    last_run_date = None  # Track last run date in IST
 
     while True:
-        now = datetime.now()
+        now = datetime.now(ist)
         today_target = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
-        next_target = today_target + timedelta(days=1) if now >= today_target else today_target
+
+        # Determine next target time
+        if now >= today_target:
+            next_target = today_target + timedelta(days=1)
+        else:
+            next_target = today_target
+
         seconds_until_next = (next_target - now).total_seconds() - 30
 
         print(f"[Scheduler] Sleeping for {int(seconds_until_next)} seconds until {next_target}")
         if seconds_until_next > 1:
             time.sleep(seconds_until_next)
 
-        # Wait for exact match
-        while datetime.now() < next_target:
+        # Wait until exact target time
+        while datetime.now(ist) < next_target:
             time.sleep(1)
 
-        # Avoid running twice by checking the date
-        if last_run_date == datetime.now().date():
-            print("⏳ Already ran today — skipping to avoid duplicate.")
-            continue  # Skip this loop iteration
+        # Avoid duplicate runs
+        if last_run_date == datetime.now(ist).date():
+            print("⏳ Already ran today — skipping.")
+            continue
 
         try:
             with app.app_context():
                 send_daily_task_reminders()
                 print("✅ Notifications sent successfully.")
-                last_run_date = datetime.now().date()  # Update last run
+                last_run_date = datetime.now(ist).date()
         except Exception as e:
             print(f"❌ Failed to send notifications: {e}")
 
