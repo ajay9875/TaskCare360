@@ -468,56 +468,53 @@ def get_username():
 @app.route('/addTodo', methods=['POST'])
 def addTodo():
     try:
-        # Authentication check
+        # ✅ Check user is logged in
         if 'user_id' not in session:
             flash("Please log in to add a task!", "warning")
             return redirect(url_for('login'))
 
-        # Input validation
-        if not all(key in request.form for key in ['title', 'desc']):
-            flash("Title and description are required!", "danger")
+        # ✅ Validate form inputs
+        title = request.form.get('title', '').strip()
+        desc = request.form.get('desc', '').strip()
+
+        if not title or not desc:
+            flash("Both title and description are required.", "danger")
             return redirect(url_for('dashboard'))
 
-        title = request.form['title'].strip()
-        desc = request.form['desc'].strip()
+        if len(title) > 200:
+            flash("Title must be 1–200 characters.", "danger")
+            return redirect(url_for('dashboard'))
+
         user_id = session['user_id']
 
-        if not title or len(title) > 200:  # Adjust max length as needed
-            flash("Title must be 1-200 characters", "danger")
-            return redirect(url_for('dashboard'))
+        # ✅ Create and save the new todo
+        new_todo = Todo(
+            title=title,
+            desc=desc,
+            user_id=user_id,
+            date_created=datetime.utcnow()  # ✅ CORRECT FIELD NAME
+        )
 
-        # Create and save todo
-        try:
-            todo_data = {
-                "title": title,
-                "desc": desc,
-                "user_id": user_id,
-                "created_at": datetime.utcnow()
-            }
+        db.session.add(new_todo)
+        db.session.commit()
 
-            new_todo = Todo(**todo_data)
+        # Optional: Log IP and device for tracking/debugging
+        user_ip = request.remote_addr
+        user_agent = request.headers.get('User-Agent')
+        app.logger.info(f"Task added by user {user_id} from IP: {user_ip}, Device: {user_agent}")
 
-            
-            db.session.add(new_todo)
-            db.session.commit()
-            
-            flash("Task added successfully!", "success")
-            return redirect(url_for('dashboard'))
-
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Database integrity error: {str(e)}")
-            flash("Failed to save task due to database error", "danger")
-            return redirect(url_for('dashboard'))
+        flash("Task added successfully!", "success")
+        return redirect(url_for('dashboard'))
 
     except KeyError as ke:
-        current_app.logger.error(f"Session key error: {str(ke)}")
+        app.logger.error(f"Session error: {ke}")
         flash("Session error. Please log in again.", "danger")
         return redirect(url_for('login'))
 
     except Exception as e:
-        current_app.logger.error(f"Unexpected error: {str(e)}")
-        flash("An unexpected error occurred", "danger")
+        db.session.rollback()
+        app.logger.exception(f"Error adding task: {e}")  # ✅ Full traceback logging
+        flash("An unexpected error occurred while saving your task.", "danger")
         return redirect(url_for('dashboard'))
     
 #Update Todo
