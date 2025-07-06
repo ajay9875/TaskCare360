@@ -123,8 +123,8 @@ from datetime import datetime, timedelta
 import threading
 
 def notification_scheduler():
-    target_hour = 20
-    target_minute = 15
+    target_hour = 21
+    target_minute = 25
 
     last_run_date = None  # Track the last date it ran
 
