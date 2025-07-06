@@ -125,7 +125,7 @@ import threading
 
 def notification_scheduler():
     target_hour = 19
-    target_minute = 0
+    target_minute = 50
 
     last_run_date = None  # Track the last date it ran
 
@@ -282,7 +282,7 @@ def login():
             session['username'] = user.name
             session.permanent = True  # Enable session expiration
             
-            expiry_time = datetime.now() + timedelta(minutes=10)  # Set session expiry time
+            expiry_time = datetime.now() + timedelta(minutes=1)  # Set session expiry time
             session['session_expiry'] = expiry_time.timestamp()  # Store expiry time as timestamp
             
             flash("Login successful!", "success")
@@ -587,14 +587,17 @@ def deleteRecord(SNo):
     flash("Task deleted successfully!","success")
     return redirect(url_for('dashboard'))
 
-# ✅ Automatically initialize database
+# ✅ Start scheduler only once in production (and local dev)
+def start_scheduler():
+    if os.environ.get("RUN_MAIN") != "true":  # Avoid running twice in development
+        scheduler_thread = threading.Thread(target=notification_scheduler, daemon=True)
+        scheduler_thread.start()
+
+# ✅ Always create the database on startup
 with app.app_context():
+    start_scheduler()  # 🔥 Always start scheduler
     db.create_all()
 
-# Start scheduler always
-scheduler_thread = threading.Thread(target=notification_scheduler, daemon=True)
-scheduler_thread.start()
-
-# Only needed for local testing
+# ✅ Run app only if in local dev
 if __name__ == '__main__':
     app.run(debug=False)
