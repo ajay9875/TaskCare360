@@ -124,8 +124,8 @@ from datetime import datetime, timedelta
 import threading
 
 def notification_scheduler():
-    target_hour = 18
-    target_minute = 30
+    target_hour = 19
+    target_minute = 0
 
     last_run_date = None  # Track the last date it ran
 
@@ -590,11 +590,9 @@ def deleteRecord(SNo):
     flash("Task deleted successfully!","success")
     return redirect(url_for('dashboard'))
 
-@app.route('/init_db')
-def init_db():
-    with app.app_context():
-        db.create_all()
-    return "✅ Database initialized"
+# ✅ Automatically initialize database
+with app.app_context():
+    db.create_all()
 
 # Start scheduler always
 scheduler_thread = threading.Thread(target=notification_scheduler, daemon=True)
