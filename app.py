@@ -23,6 +23,139 @@ app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions on the server
 
 db = SQLAlchemy(app)
 
+from datetime import datetime
+from flask import current_app, jsonify
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+import os
+import smtplib
+from datetime import datetime
+from flask import current_app, jsonify
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def send_daily_task_reminders():
+    sender_email = os.getenv('EMAIL_USER')
+    sender_password = os.getenv('EMAIL_PASS')
+    login_url = "https://flask-todo-app-3cr3.onrender.com"
+
+    if not sender_email or not sender_password:
+        return jsonify({"error": "Email credentials are not set."}), 500
+
+    try:
+        users = User.query.all()
+        if not users:
+            return jsonify({"message": "No users found."}), 200
+
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+
+            for user in users:
+                tasks = Todo.query.filter_by(user_id=user.id).order_by(Todo.date_created.desc()).all()
+
+                if not tasks:
+                    html_body = f"""
+                    <p>Hi {user.name},</p>
+                    <p>Great job staying on top of your tasks! 🎉<br>
+                    You currently have no pending tasks. Keep up the great work!</p>
+                    <p>👉 <a href="{login_url}">Login to add or manage your tasks</a></p>
+                    <br><p>— <strong>TaskCare360 Team</strong></p>
+                    """
+                else:
+                    task_rows = ""
+                    for task in tasks:
+                        task_rows += f"""
+                            <tr>
+                                <td style="border:1px solid #ddd;padding:8px;">{task.title}</td>
+                                <td style="border:1px solid #ddd;padding:8px;">{task.desc or 'No description'}</td>
+                                <td style="border:1px solid #ddd;padding:8px;">{task.date_created.strftime('%Y-%m-%d')}</td>
+                            </tr>
+                        """
+
+                    html_body = f"""
+                    <p>Hi {user.name},</p>
+                    <p>You're performing well. Continue with the same dedication to achieve your goals today.</p>
+                    <p>Here’s a summary of your pending tasks (most recent first):</p>
+
+                    <table style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif;">
+                        <thead>
+                            <tr style="background-color: #f2f2f2;">
+                                <th style="border:1px solid #ddd;padding:8px;text-align:left;">Title</th>
+                                <th style="border:1px solid #ddd;padding:8px;text-align:left;">Description</th>
+                                <th style="border:1px solid #ddd;padding:8px;text-align:left;">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {task_rows}
+                        </tbody>
+                    </table>
+
+                    <p><strong>Total pending tasks:</strong> {len(tasks)}</p>
+                    <p>Take small steps consistently — your productivity matters! 🚀</p>
+                    <p>👉 <a href="{login_url}">Login to manage your tasks</a></p>
+                    <br><p>— <strong>TaskCare360 Team</strong></p>
+                    """
+
+                subject = f"📋 Daily Task Reminder - {datetime.now().strftime('%b %d')}"
+
+                # Create MIME message with HTML content
+                msg = MIMEMultipart("alternative")
+                msg['From'] = sender_email
+                msg['To'] = user.email
+                msg['Subject'] = subject
+                msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+
+                try:
+                    server.send_message(msg)
+                except Exception as e:
+                    current_app.logger.error(f"Failed to send to {user.email}: {e}")
+
+        print("Reminders sent successfully.")
+        return jsonify({"message": "Reminders sent successfully."}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Unexpected error: {e}")
+        return jsonify({"error": "An error occurred while sending reminders."}), 500
+
+import time
+from datetime import datetime, timedelta
+import threading
+
+def notification_scheduler():
+    target_hour = 16
+    target_minute = 0
+
+    last_run_date = None  # Track the last date it ran
+
+    while True:
+        now = datetime.now()
+        today_target = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
+        next_target = today_target + timedelta(days=1) if now >= today_target else today_target
+        seconds_until_next = (next_target - now).total_seconds() - 30
+
+        print(f"[Scheduler] Sleeping for {int(seconds_until_next)} seconds until {next_target}")
+        if seconds_until_next > 1:
+            time.sleep(seconds_until_next)
+
+        # Wait for exact match
+        while datetime.now() < next_target:
+            time.sleep(1)
+
+        # Avoid running twice by checking the date
+        if last_run_date == datetime.now().date():
+            print("⏳ Already ran today — skipping to avoid duplicate.")
+            continue  # Skip this loop iteration
+
+        try:
+            with app.app_context():
+                send_daily_task_reminders()
+                print("✅ Notifications sent successfully.")
+                last_run_date = datetime.now().date()  # Update last run
+        except Exception as e:
+            print(f"❌ Failed to send notifications: {e}")
+
 # User Model
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -48,20 +181,20 @@ def shutdown_session(exception=None):
 @app.route('/')
 def default():
     if 'user_id' not in session:
-        return redirect(url_for('todo_app'))
+        return redirect(url_for('TaskCare360'))
     return redirect(url_for('dashboard'))
 
 # Landing Page
-@app.route('/todo_app')
-def todo_app():
+@app.route('/TaskCare360')
+def TaskCare360():
     return render_template('landing.html')
 
 # Dashbord route
-@app.route('/todo_app/dashboard')
+@app.route('/TaskCare360/dashboard')
 def dashboard():
     if 'user_id' not in session:
         flash('Session expired! Please log in again.', 'warning')
-        return redirect(url_for('todo_app'))
+        return redirect(url_for('TaskCare360'))
 
     user_id = session['user_id']
     username = session.get('username')
@@ -81,7 +214,7 @@ def dashboard():
     return response
 
 # Signup
-@app.route('/todo_app/signup', methods=['GET', 'POST'])
+@app.route('/TaskCare360/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
         name = request.form['name']
@@ -94,7 +227,7 @@ def signup():
         return redirect(url_for('login'))
     return render_template('signup.html')
 
-@app.route('/todo_app/login', methods=['GET', 'POST'])
+@app.route('/TaskCare360/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
@@ -106,7 +239,7 @@ def login():
             session['username'] = user.name
             session.permanent = True  # Enable session expiration
             
-            expiry_time = datetime.now() + timedelta(minutes=15)  # Set session expiry time
+            expiry_time = datetime.now() + timedelta(minutes=1)  # Set session expiry time
             session['session_expiry'] = expiry_time.timestamp()  # Store expiry time as timestamp
             
             flash("Login successful!", "success")
@@ -116,17 +249,15 @@ def login():
 
     return render_template('login.html')
 
-
-
 # Logout
-@app.route('/todo_app/logout')
+@app.route('/TaskCare360/logout')
 def logout():
     session.pop('user_id', None)
     flash("Logged out successfully!.", "info")
-    return redirect(url_for('todo_app'))
+    return redirect(url_for('TaskCare360'))
 
 # Forgot password
-@app.route('/todo_app/forgot_password', methods=['GET', 'POST'])
+@app.route('/TaskCare360/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
         email = request.form.get('email').strip()  # Ensure no extra spaces
@@ -158,19 +289,27 @@ def send_otp(email):
     body = f"Your OTP for password reset is: {otp}"
     message = f"Subject: {subject}\n\n{body}"
 
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-        server.starttls()
-        server.login(sender_email, sender_password)
-        server.sendmail(sender_email, email, message)
-        
-        session['sent_otp'] = otp
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, email, message)
+
+        # Store OTP and expiry in Flask session
+        session['sent_otp'] = str(otp)  # Store as string to avoid type issues
         session['otp_expiry'] = (datetime.now() + timedelta(minutes=3)).timestamp()
-        session.modified = True  # ✅ Force session update
+        session.modified = True
         return True
+
+    except smtplib.SMTPAuthenticationError:
+        print("SMTP Authentication failed. Check app password.")
+    except Exception as e:
+        print(f"Failed to send OTP email: {e}")
+    
     return False
 
 # Verify OTP Route
-@app.route('/todo_app/verify_otp', methods=['GET', 'POST'])
+@app.route('/TaskCare360/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
     # Prevent direct access if OTP was not sent
     email = session.get('email')  # Retrieve email from session
@@ -221,7 +360,7 @@ def verify_otp():
     return render_template('verify_otp.html')
 
 # Reset Password using OTP
-@app.route('/todo_app/reset_password', methods=['GET', 'POST'])
+@app.route('/TaskCare360/reset_password', methods=['GET', 'POST'])
 def reset_password():
     email = session.get('verified_email')  # Retrieve verified email
     # Prevent unauthorized access
@@ -258,7 +397,7 @@ def reset_password():
     return render_template('reset_password.html')
 
 # Retrieve Username via Email
-@app.route('/todo_app/get_username', methods=['GET', 'POST'])
+@app.route('/TaskCare360/get_username', methods=['GET', 'POST'])
 def get_username():
     if request.method == 'POST':
         email = request.form['email']
@@ -330,4 +469,9 @@ def deleteRecord(SNo):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Create tables for the default DB
-    app.run(debug=True)
+    
+        # Start scheduler thread
+        scheduler_thread = threading.Thread(target=notification_scheduler, daemon=True)
+        scheduler_thread.start()
+
+    app.run(debug=False)
