@@ -38,7 +38,7 @@ from email.mime.multipart import MIMEMultipart
 def send_daily_task_reminders():
     sender_email = os.getenv('EMAIL_USER')
     sender_password = os.getenv('EMAIL_PASS')
-    login_url = "https://flask-todo-app-3cr3.onrender.com"
+    login_url = "https://taskcare360.onrender.com"
 
     if not sender_email or not sender_password:
         return jsonify({"error": "Email credentials are not set."}), 500
@@ -124,8 +124,8 @@ from datetime import datetime, timedelta
 import threading
 
 def notification_scheduler():
-    target_hour = 16
-    target_minute = 0
+    target_hour = 18
+    target_minute = 30
 
     last_run_date = None  # Track the last date it ran
 
@@ -217,14 +217,57 @@ def dashboard():
 @app.route('/TaskCare360/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        password = generate_password_hash(request.form['password'])
-        user = User(name=name, email=email, password=password)
-        db.session.add(user)
-        db.session.commit()
-        flash("Signup successful! Please log in.", "success")
-        return redirect(url_for('login'))
+        try:
+            # Validate form data exists
+            if not all(field in request.form for field in ['name', 'email', 'password']):
+                flash("All fields are required!", "danger")
+                return redirect(url_for('signup'))
+
+            # Get and sanitize inputs
+            name = request.form['name'].strip()
+            email = request.form['email'].strip().lower()
+            raw_password = request.form['password'].strip()
+
+            # Validate name
+            if not name or len(name) > 100:
+                flash("Name must be 1-100 characters", "danger")
+                return redirect(url_for('signup'))
+
+            # Validate password strength
+            if len(raw_password) < 8:
+                flash("Password must be at least 8 characters", "danger")
+                return redirect(url_for('signup'))
+
+            # Check if email exists
+            if User.query.filter_by(email=email).first():
+                flash("Email already registered. Please login instead.", "warning")
+                return redirect(url_for('login'))
+
+            # Create user
+            try:
+                hashed_password = generate_password_hash(raw_password)
+                user_data = {
+                    'name': name,
+                    'email': email,
+                    'password': hashed_password
+                }
+                new_user = User(**user_data)
+                db.session.add(new_user)
+                db.session.commit()
+                flash("Signup successful! Please log in.", "success")
+                return redirect(url_for('login'))
+            except Exception as db_error:
+                db.session.rollback()
+                current_app.logger.error(f"Database error: {str(db_error)}")
+                flash("Registration failed. Please try again.", "danger")
+                return redirect(url_for('signup'))
+
+        except Exception as e:
+            current_app.logger.error(f"Signup error: {str(e)}")
+            flash("An error occurred during registration", "danger")
+            return redirect(url_for('signup'))
+
+    # GET request
     return render_template('signup.html')
 
 @app.route('/TaskCare360/login', methods=['GET', 'POST'])
@@ -239,7 +282,7 @@ def login():
             session['username'] = user.name
             session.permanent = True  # Enable session expiration
             
-            expiry_time = datetime.now() + timedelta(minutes=1)  # Set session expiry time
+            expiry_time = datetime.now() + timedelta(minutes=10)  # Set session expiry time
             session['session_expiry'] = expiry_time.timestamp()  # Store expiry time as timestamp
             
             flash("Login successful!", "success")
@@ -250,7 +293,7 @@ def login():
     return render_template('login.html')
 
 # Logout
-@app.route('/TaskCare360/logout')
+@app.route('/logout')
 def logout():
     session.pop('user_id', None)
     flash("Logged out successfully!.", "info")
@@ -260,7 +303,7 @@ def logout():
 @app.route('/TaskCare360/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        email = request.form.get('email').strip()  # Ensure no extra spaces
+        email = request.form.get('email', "").strip()  # Ensure no extra spaces
         user = User.query.filter_by(email=email).first()
 
         if user:
@@ -311,54 +354,68 @@ def send_otp(email):
 # Verify OTP Route
 @app.route('/TaskCare360/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
-    # Prevent direct access if OTP was not sent
-    email = session.get('email')  # Retrieve email from session
-    sent_otp = session.get('sent_otp')  # Retrieve stored OTP
-    otp_expiry = session.get('otp_expiry') # Retrieve OTP expiry time
+    try:
+        # Retrieve all session data at once
+        email = session.get('email')
+        sent_otp = session.get('sent_otp')
+        otp_expiry = session.get('otp_expiry')
 
-    if not email:
-        flash("Session expired! Please request for new otp.", "danger")
-        return redirect(url_for('forgot_password'))
-
-    if not sent_otp:
-        flash("OTP expired! Please request for new otp.", "danger")
-        return redirect(url_for('forgot_password'))
-
-    if not otp_expiry:
-        flash("OTP expiry not found! Please request for new otp.", "danger")
-        return redirect(url_for('forgot_password'))
-        
-    email = session.get('email')  # Retrieve email from session
-    sent_otp = session.get('sent_otp')  # Retrieve stored OTP
-    otp_expiry = session.get('otp_expiry')  # Retrieve OTP expiry time
-
-    # Check if OTP has expired
-    if datetime.now().timestamp() > otp_expiry:
-        session.pop('sent_otp', None)  # Remove expired OTP
-        session.pop('otp_expiry', None)
-        session.pop('email', None)
-        flash("OTP has expired! Please request a new one.", "danger")
-        return redirect(url_for('forgot_password'))
-
-    if request.method == 'POST':
-        entered_otp = request.form.get('otp', '').strip()  # Ensure OTP is stripped of spaces
-
-        # Validate OTP
-        if str(sent_otp) == entered_otp:
-            # OTP is valid; clean up session
+        # Validate all required session data exists
+        if not email or not sent_otp or not otp_expiry:
             session.pop('sent_otp', None)
             session.pop('otp_expiry', None)
             session.pop('email', None)
+            flash("OTP session invalid. Please request a new OTP.", "danger")
+            return redirect(url_for('forgot_password'))
+
+        # Safe OTP expiry check
+        try:
+            if datetime.now().timestamp() > float(otp_expiry):
+                session.pop('sent_otp', None)
+                session.pop('otp_expiry', None)
+                session.pop('email', None)
+                flash("OTP has expired! Please request a new one.", "danger")
+                return redirect(url_for('forgot_password'))
+        except (TypeError, ValueError):
+            session.pop('sent_otp', None)
+            session.pop('otp_expiry', None)
+            session.pop('email', None)
+            flash("OTP validation error. Please request a new one.", "danger")
+            return redirect(url_for('forgot_password'))
+
+        if request.method == 'POST':
+            entered_otp = request.form.get('otp', '').strip()
+            
+            # Basic OTP format validation
+            if not entered_otp or not entered_otp.isdigit() or len(entered_otp) != 6:
+                flash("Invalid OTP format. Please enter 6 digits.", "danger")
+                return redirect(url_for('verify_otp'))
+
+            # Simple comparison (for learning - in production use constant-time compare)
+            if str(sent_otp) != entered_otp:
+                flash("Invalid OTP! Please try again.", "danger")
+                return redirect(url_for('verify_otp'))
+                
+            # Successful verification
+            session.pop('sent_otp', None)
+            session.pop('otp_expiry', None)
             session['verified_email'] = email  # Store verified email
+            session.pop('email', None)
 
             flash("OTP verified successfully! Please reset your password.", "success")
             return redirect(url_for('reset_password'))
-        else:
-            flash("Invalid OTP! Please try again.", "danger")
-            return redirect(url_for('verify_otp'))
 
-    return render_template('verify_otp.html')
+        return render_template('verify_otp.html')
 
+    except Exception as e:
+        # Log unexpected errors (make sure to configure logging in your app)
+        current_app.logger.error(f"OTP verification error: {str(e)}")
+        session.pop('sent_otp', None)
+        session.pop('otp_expiry', None)
+        session.pop('email', None)
+        flash("An unexpected error occurred. Please try again.", "danger")
+        return redirect(url_for('forgot_password'))
+    
 # Reset Password using OTP
 @app.route('/TaskCare360/reset_password', methods=['GET', 'POST'])
 def reset_password():
@@ -410,47 +467,114 @@ def get_username():
 
 @app.route('/addTodo', methods=['POST'])
 def addTodo():
-    if 'user_id' not in session:  # ✅ Ensure user is logged in
-        flash("Please log in to add a task!", "warning")
+    try:
+        # Authentication check
+        if 'user_id' not in session:
+            flash("Please log in to add a task!", "warning")
+            return redirect(url_for('login'))
+
+        # Input validation
+        if not all(key in request.form for key in ['title', 'desc']):
+            flash("Title and description are required!", "danger")
+            return redirect(url_for('dashboard'))
+
+        title = request.form['title'].strip()
+        desc = request.form['desc'].strip()
+        user_id = session['user_id']
+
+        if not title or len(title) > 200:  # Adjust max length as needed
+            flash("Title must be 1-200 characters", "danger")
+            return redirect(url_for('dashboard'))
+
+        # Create and save todo
+        try:
+            todo_data = {
+                "title": title,
+                "desc": desc,
+                "user_id": user_id,
+                "created_at": datetime.utcnow()
+            }
+
+            new_todo = Todo(**todo_data)
+
+            
+            db.session.add(new_todo)
+            db.session.commit()
+            
+            flash("Task added successfully!", "success")
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Database integrity error: {str(e)}")
+            flash("Failed to save task due to database error", "danger")
+            return redirect(url_for('dashboard'))
+
+    except KeyError as ke:
+        current_app.logger.error(f"Session key error: {str(ke)}")
+        flash("Session error. Please log in again.", "danger")
         return redirect(url_for('login'))
 
-    if request.method == 'POST':
-        title = request.form['title']
-        desc = request.form['desc']
-        user_id = session['user_id']  # ✅ Get user_id from session
-
-        todo = Todo(title=title, desc=desc, user_id=user_id)  # ✅ Pass user_id
-        if not todo:
-            flash("Task not found!", "danger")
-            return redirect(url_for("dashboard"))
-
-        db.session.add(todo)
-        db.session.commit()
-
-        flash("Task added successfully!", "success")
-        return redirect(url_for('dashboard'))  # Redirect to home/dashboard
-
+    except Exception as e:
+        current_app.logger.error(f"Unexpected error: {str(e)}")
+        flash("An unexpected error occurred", "danger")
+        return redirect(url_for('dashboard'))
+    
 #Update Todo
-@app.route('/update/<int:SNo>', methods=['GET','POST'])
+@app.route('/update/<int:SNo>', methods=['GET', 'POST'])
 def updateTodo(SNo):
-    if 'user_id' not in session:  # ✅ Ensure user is logged in
-        flash("Please log in to do this task!", "warning")
-        return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        title = request.form['title']
-        desc = request.form['desc']
-        todo = Todo.query.filter_by(SNo=SNo).first()
-        
-        todo.title = title
-        todo.desc = desc
-        db.session.commit()
-        
-        flash("Todo details updated successfully!", "success")
-        return redirect(url_for(("dashboard")))
-    
-    todo = Todo.query.filter_by(SNo=SNo).first()
-    return render_template('update.html', todo=todo)
+    try:
+        # Authentication check
+        if 'user_id' not in session:
+            flash("Please log in to update tasks!", "warning")
+            return redirect(url_for('login'))
+
+        # Get the todo item with ownership check
+        todo = Todo.query.filter_by(SNo=SNo, user_id=session['user_id']).first()
+        if not todo:
+            flash("Task not found or unauthorized access", "danger")
+            return redirect(url_for('dashboard'))
+
+        if request.method == 'POST':
+            try:
+                # Input validation
+                title = request.form.get('title', '').strip()
+                desc = request.form.get('desc', '').strip()
+
+                if not title:
+                    flash("Title cannot be empty!", "danger")
+                    return render_template('update.html', todo=todo)
+
+                if len(title) > 200:  # Adjust max length as needed
+                    flash("Title too long (max 200 characters)", "danger")
+                    return render_template('update.html', todo=todo)
+
+                # Update todo
+                todo.title = title
+                todo.desc = desc
+                todo.updated_at = datetime.utcnow()  # Optional timestamp update
+                
+                db.session.commit()
+                flash("Task updated successfully!", "success")
+                return redirect(url_for('dashboard'))
+
+            except KeyError:
+                flash("Invalid form submission", "danger")
+                return render_template('update.html', todo=todo)
+                
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"Error updating todo: {str(e)}")
+                flash("Failed to update task", "danger")
+                return render_template('update.html', todo=todo)
+
+        # GET request - show form
+        return render_template('update.html', todo=todo)
+
+    except Exception as e:
+        current_app.logger.error(f"Unexpected error in updateTodo: {str(e)}")
+        flash("An unexpected error occurred", "danger")
+        return redirect(url_for('dashboard'))
 
 #Delete Record
 @app.route('/delete_todo/<int:SNo>')
