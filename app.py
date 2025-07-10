@@ -124,8 +124,8 @@ import time
 import threading
 
 def notification_scheduler():
-    target_hour = 8
-    target_minute = 30
+    target_hour = 7
+    target_minute = 0
 
     ist = ZoneInfo("Asia/Kolkata")  # Timezone for India
     last_run_date = None  # Track last run date in IST
