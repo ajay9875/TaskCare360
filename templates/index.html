@@ -135,7 +135,7 @@
     <div id="session-timer" style="margin: 8px 20px; font-weight: bold;"></div>
 
     <script>
-        let remainingTime = {{ remaining_time }};  // Provided by Flask
+        let remainingTime = {{ remaining_time|int }}; //Provided by flask
 
         function updateTimer() {
             const timerElement = document.getElementById("session-timer");

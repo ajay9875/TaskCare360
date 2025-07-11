@@ -205,24 +205,33 @@ def default():
 def TaskCare360():
     return render_template('landing.html')
 
-# Dashbord route
+#Dashboard Page
 @app.route('/TaskCare360/dashboard')
 def dashboard():
     if 'user_id' not in session:
         flash('Session expired! Please log in again.', 'warning')
         return redirect(url_for('TaskCare360'))
 
-    user_id = session.get('user_id')
-    username = session.get('username')
+    # Enforce session expiry on server side
+    expiry_timestamp = session.get('session_expiry', 0)
+    current_timestamp = datetime.utcnow().timestamp()
 
-    # Calculate remaining session time
-    expiry_time = session.get('session_expiry', 0)
-    current_time = datetime.now().timestamp()
-    remaining_time = max(0, int(expiry_time - current_time))  # Avoid negative values
+    if current_timestamp > expiry_timestamp:
+        flash('Session expired due to inactivity.', 'warning')
+        return redirect(url_for('logout'))
+
+    user_id = session['user_id']
+    username = session['username']
+
+    remaining_time = max(0, int(expiry_timestamp - current_timestamp))  # Seconds
 
     allTodo = Todo.query.filter_by(user_id=user_id).all()
 
-    response = make_response(render_template('index.html', allTodo=allTodo, username=username, remaining_time=remaining_time))
+    # Prevent caching of this page
+    response = make_response(render_template('index.html',
+                                             allTodo=allTodo,
+                                             username=username,
+                                             remaining_time=remaining_time))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
@@ -286,21 +295,23 @@ def signup():
     # GET request
     return render_template('signup.html')
 
+# Login Page Route
 @app.route('/TaskCare360/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
         user = User.query.filter_by(email=email).first()
-  
+
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['username'] = user.name
-            session.permanent = True  # Enable session expiration
-            
-            expiry_time = datetime.now() + timedelta(minutes=10)  # Set session expiry time
-            session['session_expiry'] = expiry_time.timestamp()  # Store expiry time as timestamp
-            
+            session.permanent = True  # Required if using app.permanent_session_lifetime
+
+            # Use UTC for deployment-safe session expiry
+            expiry_time = datetime.utcnow() + timedelta(minutes=0.5)  # 30 seconds
+            session['session_expiry'] = expiry_time.timestamp()
+
             flash("Login successful!", "success")
             return redirect(url_for('dashboard'))
 
@@ -308,10 +319,11 @@ def login():
 
     return render_template('login.html')
 
-# Logout
+# Logout Route
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
+
     flash("Logged out successfully!.", "info")
     return redirect(url_for('TaskCare360'))
 
@@ -538,7 +550,7 @@ def addTodo():
 def updateTodo(SNo):
     try:
         # Authentication check
-        if 'user_id' not in session:
+        if 'user_id' or 'username' not in session:
             flash("Please log in to update tasks!", "warning")
             return redirect(url_for('login'))
 
