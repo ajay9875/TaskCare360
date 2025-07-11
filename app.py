@@ -125,7 +125,7 @@ import threading
 
 def notification_scheduler():
     target_hour = 7
-    target_minute = 0
+    target_minute = 30
 
     ist = ZoneInfo("Asia/Kolkata")  # Timezone for India
     last_run_date = None  # Track last run date in IST
@@ -309,7 +309,7 @@ def login():
             session.permanent = True  # Required if using app.permanent_session_lifetime
 
             # Use UTC for deployment-safe session expiry
-            expiry_time = datetime.utcnow() + timedelta(minutes=0.5)  # 30 seconds
+            expiry_time = datetime.utcnow() + timedelta(minutes=15)  # 15 minutes
             session['session_expiry'] = expiry_time.timestamp()
 
             flash("Login successful!", "success")
