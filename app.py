@@ -323,6 +323,7 @@ def login():
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
+    session.pop('username', None)
 
     flash("Logged out successfully!.", "info")
     return redirect(url_for('TaskCare360'))
@@ -546,18 +547,18 @@ def addTodo():
         return redirect(url_for('dashboard'))
     
 #Update Todo
-@app.route('/update/<int:SNo>', methods=['GET', 'POST'])
+@app.route('/TaskCare360/update/<int:SNo>', methods=['GET', 'POST'])
 def updateTodo(SNo):
     try:
         # Authentication check
-        if 'user_id' or 'username' not in session:
+        if 'user_id' not in session or 'username' not in session:
             flash("Please log in to update tasks!", "warning")
             return redirect(url_for('login'))
 
         # Get the todo item with ownership check
         todo = Todo.query.filter_by(SNo=SNo, user_id=session['user_id']).first()
         if not todo:
-            flash("Task not found or unauthorized access", "danger")
+            flash("Task not found, please add new task first.", "danger")
             return redirect(url_for('dashboard'))
 
         if request.method == 'POST':
