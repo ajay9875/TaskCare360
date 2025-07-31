@@ -5,6 +5,7 @@ body {
 
 /* General message styling */
 .message {
+display: float;
 width: fit-content;
 border-radius: 5px;
 font-weight: bold;

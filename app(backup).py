@@ -8,100 +8,25 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from datetime import datetime, UTC
-from flask import current_app, jsonify
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-
-import os
-import smtplib
-from datetime import datetime
-from flask import current_app, jsonify
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-app.config['SESSION_PERMANENT'] = False
-app.config['SESSION_TYPE'] = 'filesystem'
-
-# PostgreSQL Configuration - Single Database
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # postgresql://user:pass@host/dbname
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 10,
-    'max_overflow': 20,
-    'pool_recycle': 3600,
-    'pool_pre_ping': True,
-    'pool_timeout': 30
+"""app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///user.db"  # Default DB
+app.config['SQLALCHEMY_BINDS'] = {
+    'todo': "sqlite:///todo.db"  # Additional DB
 }
 
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')  # Load the secret key securely
+app.config['SESSION_PERMANENT'] = False  # Prevent session expiration issues
+#app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=2)  # Extend session life
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions on the server
 db = SQLAlchemy(app)
 
-# ======================
-# MODELS (100% Attribute Preservation)
-# ======================
-from zoneinfo import ZoneInfo
-ist = ZoneInfo("Asia/Kolkata")  # Timezone for India
-import pytz
-
-# Global variable (no need for self/this)
-IST = pytz.timezone('Asia/Kolkata')
-
-utc_now = datetime.now(UTC)
-ist_now = utc_now.astimezone(ist)
-
-class User(db.Model):
-    __tablename__ = 'user'  # Original table name
-    __table_args__ = {'schema': 'taskcare_schema'}
-
-    # Original Attributes (Exactly as in SQLite)
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150), nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    
-    # Original Relationship (if used)
-    todos = db.relationship('Todo', backref='user', lazy=True)
-
-class Todo(db.Model):
-    __tablename__ = 'todo'  # Original table name
-    __table_args__ = {'schema': 'taskcare_schema'}
-
-    # Original Attributes (Exactly as in SQLite)
-    SNo = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    desc = db.Column(db.String, nullable=False)
-    date_created = db.Column(db.Date, default=lambda: datetime.now(UTC).date(), nullable=False)  # ✅ Date-only in UTC
-    user_id = db.Column(db.Integer, db.ForeignKey('taskcare_schema.user.id'), nullable=False)  # Original FK
-
-    def __repr__(self) -> str:
-        return f"{self.SNo} - {self.title}"  # Original
-
-# Create schemas if they don't exist
-def initialize_database():
-    with app.app_context():
-        # Create schema if not exists
-        db.session.execute(db.text('CREATE SCHEMA IF NOT EXISTS taskcare_schema'))
-        db.session.commit()
-        db.create_all()
-        print("Database schema and tables initialized!")
-
-@app.teardown_appcontext
-def shutdown_session(exception=None):
-    db.session.remove()
-
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
-import time
-import threading
-
-# Route/Function to define time for sending email
 def notification_scheduler():
-    target_hour = 8
-    target_minute = 0
+    target_hour = 18
+    target_minute = 7
 
-    global ist # Timezone for India
+    ist = ZoneInfo("Asia/Kolkata")  # Timezone for India
     last_run_date = None  # Track last run date in IST
 
     while True:
@@ -145,6 +70,35 @@ def notification_scheduler():
                 
         except Exception as e:
             print(f"❌ Failed to send notifications: {e}")
+
+"""
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///user.db"  # Default DB
+app.config['SQLALCHEMY_BINDS'] = {
+    'todo': "sqlite:///todo.db"  # Additional DB
+}
+
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')  # Load the secret key securely
+app.config['SESSION_PERMANENT'] = False  # Prevent session expiration issues
+#app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=2)  # Extend session life
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions on the server
+
+db = SQLAlchemy(app)
+
+from datetime import datetime
+from flask import current_app, jsonify
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+import os
+import smtplib
+from datetime import datetime
+from flask import current_app, jsonify
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 def send_daily_task_reminders():
     sender_email = os.getenv('EMAIL_USER')
@@ -205,7 +159,7 @@ def send_daily_task_reminders():
 
                         <p><strong>Total pending tasks:</strong> {len(tasks)}</p>
                         <p>Take small steps consistently — your productivity matters! 🚀</p>
-                        <p>👉 <a href="{login_url}">Login</a> to manage your tasks</p>
+                        <p>👉 <a href="{login_url}">Login</a>to manage your tasks</p>
                         <br><p>— <strong>TaskCare360 Team</strong></p>
                         """
 
@@ -229,6 +183,82 @@ def send_daily_task_reminders():
         current_app.logger.error(f"Unexpected error: {e}")
         return jsonify({"error": "An error occurred while sending reminders."}), 500
 
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+import time
+import threading
+
+def notification_scheduler():
+    target_hour = 7
+    target_minute = 30
+
+    ist = ZoneInfo("Asia/Kolkata")  # Timezone for India
+    last_run_date = None  # Track last run date in IST
+
+    while True:
+        now = datetime.now(ist)
+        today_target = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
+
+        # Determine next target time
+        if now >= today_target:
+            next_target = today_target + timedelta(days=1)
+        else:
+            next_target = today_target
+
+        seconds_until_next = (next_target - now).total_seconds() - 30
+         
+        if seconds_until_next <= 0:
+            print(f"Executing message schedular immediately.")
+        else:
+            print(f"[Scheduler] Sleeping for {int(seconds_until_next)} seconds until {next_target}")
+
+        if seconds_until_next > 1:
+            time.sleep(seconds_until_next)
+
+        # Wait until exact target time
+        while datetime.now(ist) < next_target:
+            time.sleep(1)
+
+        # Avoid duplicate runs
+        if last_run_date == datetime.now(ist).date():
+            print("⏳ Already ran today — skipping.")
+            continue
+
+        try:
+            with app.app_context():
+                sent_msg = send_daily_task_reminders()
+                if sent_msg:
+                    print("✅ Reminders sent successfully.")
+                else:
+                    print("❌ No users found to send reminders.")
+
+                last_run_date = datetime.now(ist).date()
+                
+        except Exception as e:
+            print(f"❌ Failed to send notifications: {e}")
+
+# User Model
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+
+# Todo Model
+class Todo(db.Model):
+    SNo = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    desc = db.Column(db.String, nullable=False)
+    date_created = db.Column(db.DateTime, default=datetime.now)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __repr__(self) -> str:
+        return f"{self.SNo} - {self.title}"
+
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db.session.remove()
+
 @app.route('/')
 def default():
     if 'user_id' not in session:
@@ -249,20 +279,11 @@ def dashboard():
 
     # Enforce session expiry on server side
     expiry_timestamp = session.get('session_expiry', 0)
-    #current_timestamp = datetime.utcnow().timestamp()
-    current_timestamp = datetime.now(UTC).timestamp()  # ✅ Modern replacement for utcnow()
+    current_timestamp = datetime.utcnow().timestamp()
 
     if current_timestamp > expiry_timestamp:
-        flash('Session expired. Please login again.', 'danger')
+        flash('Session expired due to inactivity.', 'warning')
         return redirect(url_for('logout'))
-
-    # Get current UTC time
-
-    """ 
-    utc_now = datetime.now(UTC)
-    ist_now = utc_now.astimezone(ist)
-    print("IST Time:", ist_now) 
-    """
 
     user_id = session['user_id']
     username = session['username']
@@ -287,28 +308,15 @@ def dashboard():
 def signup():
     if request.method == 'POST':
         try:
-            # Validate all required fields exist
-            required_fields = ['name', 'email', 'Cemail', 'password', 'Cpassword']
-            if not all(field in request.form for field in required_fields):
+            # Validate form data exists
+            if not all(field in request.form for field in ['name', 'email', 'password']):
                 flash("All fields are required!", "danger")
                 return redirect(url_for('signup'))
 
             # Get and sanitize inputs
             name = request.form['name'].strip()
             email = request.form['email'].strip().lower()
-            Cemail = request.form['Cemail'].strip().lower()
-            password = request.form['password'].strip()
-            Cpassword = request.form['Cpassword'].strip()
-
-            # Validate email match
-            if email != Cemail:
-                flash("Email addresses do not match!", "danger")
-                return redirect(url_for('signup'))
-
-            # Validate password match
-            if password != Cpassword:
-                flash("Passwords do not match!", "danger")
-                return redirect(url_for('signup'))
+            raw_password = request.form['password'].strip()
 
             # Validate name
             if not name or len(name) > 100:
@@ -316,7 +324,7 @@ def signup():
                 return redirect(url_for('signup'))
 
             # Validate password strength
-            if len(password) < 8:
+            if len(raw_password) < 8:
                 flash("Password must be at least 8 characters", "danger")
                 return redirect(url_for('signup'))
 
@@ -327,7 +335,7 @@ def signup():
 
             # Create user
             try:
-                hashed_password = generate_password_hash(password)
+                hashed_password = generate_password_hash(raw_password)
                 user_data = {
                     'name': name,
                     'email': email,
@@ -366,7 +374,7 @@ def login():
             session.permanent = True  # Required if using app.permanent_session_lifetime
 
             # Use UTC for deployment-safe session expiry
-            expiry_time = datetime.now(UTC) + timedelta(minutes=15)  # 15 minutes
+            expiry_time = datetime.utcnow() + timedelta(minutes=15)  # 15 minutes
             session['session_expiry'] = expiry_time.timestamp()
 
             flash("Login successful!", "success")
@@ -635,7 +643,7 @@ def updateTodo(SNo):
                 # Update todo
                 todo.title = title
                 todo.desc = desc
-                todo.updated_at = datetime.now(IST)  # Optional timestamp update
+                todo.updated_at = datetime.utcnow()  # Optional timestamp update
                 
                 db.session.commit()
                 flash("Task updated successfully!", "success")
@@ -681,10 +689,9 @@ def start_scheduler():
 
 # ✅ Always create the database on startup
 with app.app_context():
-    #db.create_all()
+    db.create_all()
     start_scheduler()  # 🔥 Always start scheduler
 
 # ✅ Run app only if in local dev
 if __name__ == '__main__':
-    initialize_database()
     app.run(debug=False)

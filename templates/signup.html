@@ -26,9 +26,13 @@
         <h2>Sign Up</h2>
         <form method="POST">
             <input type="text" name="name" placeholder="Full name" required>
-            <input type="email" name="email" placeholder="Enter email" required>
+            <input type="email" name="email" placeholder="Enter email" autocomplete="email" required>
+            <input type="email" name="Cemail" placeholder="Re-type email" autocomplete="nope" required>
+
             <input type="password" name="password" placeholder="Password" autocomplete="off" required>
-            <button type="submit">Sign Up</button>
+            <input type="password" name="Cpassword" placeholder="Re-type Password" autocomplete="off" required>
+
+            <button type="submit">Submit</button>
         </form>
         <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
         
