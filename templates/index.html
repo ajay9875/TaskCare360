@@ -111,6 +111,7 @@
                     <th scope="col">Title</th>
                     <th scope="col">Description</th>
                     <th scope="col">Added Date</th>
+                    <th scope="col">Updated Date</th>
                     <th scope="col">Actions</th>
                 </tr>
             </thead>
@@ -121,6 +122,7 @@
                     <td>{{ todo.title }}</td>
                     <td>{{ todo.desc }}</td>
                     <td>{{ todo.date_created }}</td>
+                    <td>{{ todo.date_updated }}</td>
                     <td>
                         <a href="/TaskCare360/update/{{todo.SNo}}" id="update-btn" type="button" class="btn btn-info btn-outline-dark btn-sm mx-1">Update</a>
                         <a href="/delete_todo/{{todo.SNo}}" id="delete-btn" type="button" class="btn btn-info btn-outline-dark btn-sm mx-1">Delete</a>

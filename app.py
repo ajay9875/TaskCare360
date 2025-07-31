@@ -47,10 +47,7 @@ import pytz
 
 # Global variable (no need for self/this)
 IST = pytz.timezone('Asia/Kolkata')
-
-utc_now = datetime.now(UTC)
-ist_now = utc_now.astimezone(ist)
-
+print(datetime.now(ist).date())
 class User(db.Model):
     __tablename__ = 'user'  # Original table name
     __table_args__ = {'schema': 'taskcare_schema'}
@@ -72,11 +69,51 @@ class Todo(db.Model):
     SNo = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     desc = db.Column(db.String, nullable=False)
-    date_created = db.Column(db.Date, default=lambda: datetime.now(UTC).date(), nullable=False)  # ✅ Date-only in UTC
+    date_created = db.Column(db.Date, nullable=False)  # No default
+    date_updated = db.Column(db.Date, nullable=True)  # No default
+
     user_id = db.Column(db.Integer, db.ForeignKey('taskcare_schema.user.id'), nullable=False)  # Original FK
 
     def __repr__(self) -> str:
         return f"{self.SNo} - {self.title}"  # Original
+    
+@app.route('/addTodo', methods=['POST'])
+def addTodo():
+    try:
+        if 'user_id' not in session:
+            flash("Please login first", "warning")
+            return redirect(url_for('login'))
+
+        # Get and validate form data
+        title = request.form.get('title', '').strip()
+        desc = request.form.get('desc', '').strip()
+        
+        if not title or not desc:
+            flash("Both fields required", "danger")
+            return redirect(url_for('dashboard'))
+
+        # Get current IST date (timezone-aware)
+        global ist
+        current_ist_date = datetime.now(ist).date()
+
+        # Create new todo
+        new_todo = Todo(
+            title=title,
+            desc=desc,
+            user_id=session['user_id'],
+            date_created=current_ist_date  # Explicit IST date
+        )
+
+        db.session.add(new_todo)
+        db.session.commit()
+        flash("Task added!", "success")
+        return redirect(url_for('dashboard'))
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Add task failed: {str(e)}", exc_info=True)
+        flash("Task addition failed", "danger")
+        return redirect(url_for('dashboard'))
 
 # Create schemas if they don't exist
 def initialize_database():
@@ -610,58 +647,6 @@ def get_username():
         else:
             flash("Email not found!", "danger")
     return render_template('get_username.html')
-
-@app.route('/addTodo', methods=['POST'])
-def addTodo():
-    try:
-        # ✅ Check user is logged in
-        if 'user_id' not in session:
-            flash("Please log in to add a task!", "warning")
-            return redirect(url_for('login'))
-
-        # ✅ Validate form inputs
-        title = request.form.get('title', '').strip()
-        desc = request.form.get('desc', '').strip()
-
-        if not title or not desc:
-            flash("Both title and description are required.", "danger")
-            return redirect(url_for('dashboard'))
-
-        if len(title) > 200:
-            flash("Title must be 1–200 characters.", "danger")
-            return redirect(url_for('dashboard'))
-
-        user_id = session['user_id']
-
-        # ✅ Create and save the new todo
-        new_todo = Todo(
-            title=title,
-            desc=desc,
-            user_id=user_id,
-            date_created=datetime.utcnow()  # ✅ CORRECT FIELD NAME
-        )
-
-        db.session.add(new_todo)
-        db.session.commit()
-
-        # Optional: Log IP and device for tracking/debugging
-        user_ip = request.remote_addr
-        user_agent = request.headers.get('User-Agent')
-        app.logger.info(f"Task added by user {user_id} from IP: {user_ip}, Device: {user_agent}")
-
-        flash("Task added successfully!", "success")
-        return redirect(url_for('dashboard'))
-
-    except KeyError as ke:
-        app.logger.error(f"Session error: {ke}")
-        flash("Session error. Please log in again.", "danger")
-        return redirect(url_for('login'))
-
-    except Exception as e:
-        db.session.rollback()
-        app.logger.exception(f"Error adding task: {e}")  # ✅ Full traceback logging
-        flash("An unexpected error occurred while saving your task.", "danger")
-        return redirect(url_for('dashboard'))
     
 #Update Todo
 @app.route('/TaskCare360/update/<int:SNo>', methods=['GET', 'POST'])
@@ -692,10 +677,13 @@ def updateTodo(SNo):
                     flash("Title too long (max 200 characters)", "danger")
                     return render_template('update.html', todo=todo)
 
+                global ist
+                current_ist_date = datetime.now(ist).date()
+
                 # Update todo
                 todo.title = title
                 todo.desc = desc
-                todo.updated_at = datetime.now(IST)  # Optional timestamp update
+                todo.date_updated = current_ist_date # Optional timestamp update
                 
                 db.session.commit()
                 flash("Task updated successfully!", "success")
