@@ -96,10 +96,10 @@ from zoneinfo import ZoneInfo
 import time
 import threading
 
-# Route/Function to define time for sending email
+"""# Route/Function to define time for sending email
 def notification_scheduler():
-    target_hour = 8
-    target_minute = 0
+    target_hour = 7
+    target_minute = 30
 
     global ist # Timezone for India
     last_run_date = None  # Track last run date in IST
@@ -144,7 +144,67 @@ def notification_scheduler():
                 last_run_date = datetime.now(ist).date()
                 
         except Exception as e:
-            print(f"❌ Failed to send notifications: {e}")
+            print(f"❌ Failed to send notifications: {e}")"""
+
+from datetime import datetime, timedelta
+import time
+from zoneinfo import ZoneInfo
+
+IST = ZoneInfo("Asia/Kolkata")
+
+def notification_scheduler():
+    target_times = [
+        (7, 30),   # 7:30 AM
+        (3, 30)    # 5:30 PM
+    ]
+    
+    last_run_times = {}  # Track last run for each target
+
+    while True:
+        now = datetime.now(IST)
+        
+        # Find the next target time
+        next_target = None
+        for hour, minute in target_times:
+            target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            
+            # If target is in the past today, schedule for next day
+            if now >= target:
+                target += timedelta(days=1)
+                
+            # Find the earliest upcoming target
+            if next_target is None or target < next_target:
+                next_target = target
+
+        sleep_seconds = (next_target - now).total_seconds()
+        
+        if sleep_seconds > 1:
+            print(f"⏳ Next run at {next_target.strftime('%I:%M %p')} IST (in {int(sleep_seconds)}s)")
+            time.sleep(sleep_seconds)
+
+        # Verify we're at the exact target time
+        while datetime.now(IST) < next_target:
+            time.sleep(0.1)
+
+        # Check if we already ran for this specific time today
+        current_target = next_target.replace(tzinfo=None)
+        if last_run_times.get(current_target.date()) == current_target.time():
+            print(f"⏭ Already ran at {current_target.strftime('%I:%M %p')} today")
+            continue
+
+        try:
+            with app.app_context():
+                print(f"⏰ Executing scheduler for {current_target.strftime('%I:%M %p')} IST")
+                sent_msg = send_daily_task_reminders()
+                
+                if sent_msg:
+                    print("✅ Reminders sent successfully")
+                    last_run_times[current_target.date()] = current_target.time()
+                else:
+                    print("ℹ️ No users needed reminders")
+
+        except Exception as e:
+            print(f"❌ Error sending notifications: {str(e)}")
 
 def send_daily_task_reminders():
     sender_email = os.getenv('EMAIL_USER')
