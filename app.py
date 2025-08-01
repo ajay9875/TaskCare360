@@ -658,8 +658,7 @@ def get_username():
             if user:
                 flash(f"Your username is: {user.email}", "success")
             else:
-                flash("Username not found. Please try another email.", "danger")
-                
+                flash("Email not registered. Check spelling or try another.", "danger")                
             return redirect('get_username')
 
         except SQLAlchemyError as e:
