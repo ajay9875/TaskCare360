@@ -341,7 +341,8 @@ def TaskCare360():
 @app.route('/TaskCare360/dashboard')
 def dashboard():
     if 'user_id' not in session:
-        flash('Session expired! Please log in again.', 'warning')
+        #flash('Session expired! Please log in again.', 'warning')
+        session.clear()
         return redirect(url_for('TaskCare360'))
 
     # Enforce session expiry on server side
@@ -350,6 +351,7 @@ def dashboard():
     current_timestamp = datetime.now(UTC).timestamp()  # ✅ Modern replacement for utcnow()
 
     if current_timestamp > expiry_timestamp:
+        session.clear()
         flash('Session expired. Please login again.', 'danger')
         return redirect(url_for('logout'))
 
@@ -637,16 +639,42 @@ def reset_password():
     return render_template('reset_password.html')
 
 # Retrieve Username via Email
+from flask import flash, redirect, render_template, request
+from sqlalchemy.exc import SQLAlchemyError
+
 @app.route('/TaskCare360/get_username', methods=['GET', 'POST'])
 def get_username():
     if request.method == 'POST':
-        email = request.form['email']
-        user = User.query.filter_by(email=email).first()
-        if user:
-            flash(f"Your username is: {user.username}", "success")
-        else:
-            flash("Username not found! Please try with another email.", "danger")
-    return render_template('get_username.html')
+        try:
+            # Validate email input
+            email = request.form.get('email', '').strip()
+            if not email or '@' not in email:
+                flash("Please enter a valid email address", "danger")
+                return redirect('get_username')
+
+            # Database query with error handling
+            user = User.query.filter_by(email=email).first()
+            
+            if user:
+                flash(f"Your username is: {user.email}", "success")
+            else:
+                flash("Username not found. Please try another email.", "danger")
+                
+            return redirect('get_username')
+
+        except SQLAlchemyError as e:
+            # Log the error for debugging
+            app.logger.error(f"Database error in get_username: {str(e)}")
+            flash("A database error occurred. Please try again.", "danger")
+            return redirect('get_username')
+
+        except Exception as e:
+            # Catch-all for other exceptions
+            app.logger.error(f"Unexpected error in get_username: {str(e)}")
+            flash("An unexpected error occurred. Please try again.", "danger")
+            return redirect('get_username')
+
+    return render_template('forgot_username.html')
     
 #Update Todo
 @app.route('/TaskCare360/update/<int:SNo>', methods=['GET', 'POST'])

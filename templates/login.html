@@ -11,8 +11,6 @@
 
   </head>
 <body>
-  <div class="auth-container">
-
     <div class="message">
         {% with messages = get_flashed_messages(with_categories=True) %}
         {% if messages %}
@@ -24,7 +22,8 @@
         {% endif %}
         {% endwith %}
       </div>
-        
+      
+    <div class="auth-container">
       <h2>Login</h2>
         <form method="POST">
             <input type="email" name="email" placeholder="Username or Email" required>
@@ -32,6 +31,8 @@
             <button type="submit">Login</button>
         </form>
         <p><a href="{{ url_for('forgot_password') }}">Forgot Password?</a></p>
+        <p><a href="{{ url_for('get_username') }}">Forgot Username?</a></p>
+
         <p>New here? <a href="{{ url_for('signup') }}">Create an account</a></p>
         
         <a href="{{ url_for('TaskCare360') }}">Back to home</a>

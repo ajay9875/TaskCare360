@@ -6,12 +6,25 @@
     <title>TaskCare360:✅Forgot Username</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='pic/favicon.PNG') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/allmessage.css') }}">
+    <script src="{{ url_for('static', filename='javascript/allmessage.js')}}"></script>
 
 </head>
 <body>
-    <div class="auth-container">
+      <div class="message">
+        {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+          <div class="flash-messages">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% endwith %}
+      </div>
+      <div class="auth-container">
         <h2>Forgot Username</h2>
-        <form method="POST">
+        <form method="POST" action="{{ url_for('get_username') }}">
             <input type="email" name="email" placeholder="Enter your registered email" required>
             <button type="submit">Retrieve Username</button>
         </form>
