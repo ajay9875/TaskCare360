@@ -192,7 +192,7 @@ IST = ZoneInfo("Asia/Kolkata")
 def notification_scheduler():
     target_times = [
         (7, 30),   # 7:30 AM
-        (3, 30)    # 5:30 PM
+        (15, 30)    # 5:30 PM
     ]
     
     last_run_times = {}  # Track last run for each target
