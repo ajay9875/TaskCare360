@@ -645,7 +645,7 @@ def get_username():
         if user:
             flash(f"Your username is: {user.username}", "success")
         else:
-            flash("Email not found!", "danger")
+            flash("Username not found! Please try with another email.", "danger")
     return render_template('get_username.html')
     
 #Update Todo
