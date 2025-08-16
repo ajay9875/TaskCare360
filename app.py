@@ -368,7 +368,9 @@ def dashboard():
 
     remaining_time = max(0, int(expiry_timestamp - current_timestamp))  # Seconds
 
-    allTodo = Todo.query.filter_by(user_id=user_id).all()
+    #allTodo = Todo.query.filter_by(user_id=user_id).all()
+    # Sort todos by created_date in descending order (newest first)
+    allTodo = Todo.query.filter_by(user_id=user_id).order_by(Todo.date_created.desc()).all()
 
     # Prevent caching of this page
     response = make_response(render_template('index.html',

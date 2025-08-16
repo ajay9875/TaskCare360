@@ -30,21 +30,17 @@
                     <li class="nav-item">
                         <a class="nav-link active active" href="#">About</a>
                     </li>
-                    <li class="nav-item">
-                        <!-- Session Timer -->
-                        {% if remaining_time %}
-                           <div id="session-timer" style="margin: 8px 20px; font-weight: bold"></div>
-                        {% endif %}
-                    </li>
+
                     <nav class="Theme-btn">
                         <button onclick="toggleDarkMode()">🌙 Dark Mode</button>
                     </nav>
                   </ul>
-
+                <!-- Search Bar
                 <form class="d-flex" role="search">
                     <input class="form-control me-2" id="search" type="search" placeholder="Type here to search" aria-label="Search">
                     <button class="btn btn-outline-success" type="submit">Search</button>
                 </form>
+                 -->
 
                 <!-- Logout Button -->
                 <a href="{{ url_for('logout') }}" class="logout-btn">
@@ -60,9 +56,12 @@
         {% else %}
             Hello, Guest
         {% endif %}
-        <br>
+        {% if remaining_time %}
+            <div id="session-timer" style="margin: 8px 0px; font-weight: bold"></div>
+        {% endif %}
     </div>
-      <div class="message">
+
+      <div class="message" mt="20px">
         {% with messages = get_flashed_messages(with_categories=True) %}
         {% if messages %}
           <div class="flash-messages">

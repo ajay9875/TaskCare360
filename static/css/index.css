@@ -78,8 +78,8 @@ body.dark-mode {
 .dark-mode-toggle {
   cursor: pointer;
   padding: 10px 15px;
-  background: #333;
-  color: #fff;
+  background: whitesmoke;
+  color: black;
   border: none;
   border-radius: 5px;
 }
@@ -89,6 +89,34 @@ body.dark-mode {
 }
 .Theme-btn button{
   border-radius: 7px;
+}
 
+@media (max-width: 768px) {
+  body{
+    padding: 0;
+    margin: 0%;
+    width: 100%;
+  }
+  .navbar {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    top: 0;
+    right: 0;
+    left: 0;
+    position: fixed;
+    z-index: 1000;
+  }
+  
+  .navbar button, .navbar a {
+    margin: 5px 0;
+  }
+  .Theme-btn{
+  margin: 5px 0px 0px 0px;
+  }
+  
+  .logout-btn img {
+    margin-left: 0;
+  }
 }
 

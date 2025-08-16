@@ -7,5 +7,3 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }, 6000);  // Messages disappear after 6 seconds
 });
-
-
