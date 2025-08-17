@@ -192,7 +192,7 @@ IST = ZoneInfo("Asia/Kolkata")
 def notification_scheduler():
     target_times = [
         (7, 30),   # 7:30 AM
-        (15, 30)    # 5:30 PM
+        (15, 30)    # 3:30 PM
     ]
     
     last_run_times = {}  # Track last run for each target
@@ -261,7 +261,7 @@ def send_daily_task_reminders():
                 server.login(sender_email, sender_password)
 
                 for user in users:
-                    tasks = Todo.query.filter_by(user_id=user.id).order_by(Todo.date_created.desc()).all()
+                    tasks = Todo.query.filter_by(user_id=user.id).order_by(Todo.SNo.desc()).all()
 
                     if not tasks:
                         html_body = f"""
@@ -370,7 +370,7 @@ def dashboard():
 
     #allTodo = Todo.query.filter_by(user_id=user_id).all()
     # Sort todos by created_date in descending order (newest first)
-    allTodo = Todo.query.filter_by(user_id=user_id).order_by(Todo.date_created.desc()).all()
+    allTodo = Todo.query.filter_by(user_id=user_id).order_by(Todo.SNo.desc()).all()
 
     # Prevent caching of this page
     response = make_response(render_template('index.html',
